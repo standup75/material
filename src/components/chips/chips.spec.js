@@ -129,6 +129,44 @@ describe('<md-chips>', function() {
         expect(scope.items[3]).toBe('GrapeGrape');
       });
 
+      it('should add the chip if md-on-append is used only as a notifier (i.e. it returns nothing)', function() {
+        var element = buildChips(CHIP_APPEND_TEMPLATE);
+        var ctrl = element.controller('mdChips');
+
+        var noReturn = function(text) {
+        };
+        scope.appendChip = jasmine.createSpy('appendChip').and.callFake(noReturn);
+
+        element.scope().$apply(function() {
+          ctrl.chipBuffer = 'Grape';
+          simulateInputEnterKey(ctrl);
+        });
+
+        expect(scope.appendChip).toHaveBeenCalled();
+        expect(scope.appendChip.calls.mostRecent().args[0]).toBe('Grape');
+        expect(scope.items.length).toBe(4);
+        expect(scope.items[3]).toBe('Grape');
+      });
+
+      it('should not add the chip if md-on-append returns null', function() {
+        var element = buildChips(CHIP_APPEND_TEMPLATE);
+        var ctrl = element.controller('mdChips');
+
+        var nullChip = function(text) {
+          return null;
+        };
+        scope.appendChip = jasmine.createSpy('appendChip').and.callFake(nullChip);
+
+        element.scope().$apply(function() {
+          ctrl.chipBuffer = 'Grape';
+          simulateInputEnterKey(ctrl);
+        });
+
+        expect(scope.appendChip).toHaveBeenCalled();
+        expect(scope.appendChip.calls.mostRecent().args[0]).toBe('Grape');
+        expect(scope.items.length).toBe(3);
+      });
+
       it('should call the remove method when removing a chip', function() {
         var element = buildChips(CHIP_REMOVE_TEMPLATE);
         var ctrl = element.controller('mdChips');
@@ -326,6 +364,80 @@ describe('<md-chips>', function() {
 
           expect(scope.items.length).toBe(4);
           expect(scope.items[3]).toBe('Kiwi');
+          expect(element.find('input').val()).toBe('');
+        }));
+
+        it('simultaneously allows selecting an existing chip AND adding a new one', inject(function($mdConstant) {
+          // Setup our scope and function
+          setupScopeForAutocomplete();
+          scope.onAppend = jasmine.createSpy('onAppend');
+
+          // Modify the base template to add md-on-append
+          var modifiedTemplate = AUTOCOMPLETE_CHIPS_TEMPLATE
+            .replace('<md-chips', '<md-chips md-on-append="onAppend($chip)"');
+
+          var element = buildChips(modifiedTemplate);
+
+          var ctrl = element.controller('mdChips');
+          $timeout.flush(); // mdAutcomplete needs a flush for its init.
+          var autocompleteCtrl = element.find('md-autocomplete').controller('mdAutocomplete');
+
+          element.scope().$apply(function() {
+            autocompleteCtrl.scope.searchText = 'K';
+          });
+          autocompleteCtrl.focus();
+          $timeout.flush();
+
+          /*
+           * Send a down arrow/enter to select the right fruit
+           */
+          var downArrowEvent = {
+            type: 'keydown',
+            keyCode: $mdConstant.KEY_CODE.DOWN_ARROW,
+            which: $mdConstant.KEY_CODE.DOWN_ARROW
+          };
+          var enterEvent = {
+            type: 'keydown',
+            keyCode: $mdConstant.KEY_CODE.ENTER,
+            which: $mdConstant.KEY_CODE.ENTER
+          };
+          element.find('input').triggerHandler(downArrowEvent);
+          element.find('input').triggerHandler(enterEvent);
+          $timeout.flush();
+
+          // Check our onAppend calls
+          expect(scope.onAppend).not.toHaveBeenCalledWith('K');
+          expect(scope.onAppend).toHaveBeenCalledWith('Kiwi');
+          expect(scope.onAppend.calls.count()).toBe(1);
+
+          // Check our output
+          expect(scope.items.length).toBe(4);
+          expect(scope.items[3]).toBe('Kiwi');
+          expect(element.find('input').val()).toBe('');
+
+          // Reset our jasmine spy
+          scope.onAppend.calls.reset();
+
+          /*
+           * Use the "new chip" functionality
+           */
+
+          // Set the search text
+          element.scope().$apply(function() {
+            autocompleteCtrl.scope.searchText = 'Acai Berry';
+          });
+
+          // Fire our event and flush any timeouts
+          element.find('input').triggerHandler(enterEvent);
+          $timeout.flush();
+
+          // Check our onAppend calls
+          expect(scope.onAppend).toHaveBeenCalledWith('Acai Berry');
+          expect(scope.onAppend.calls.count()).toBe(1);
+
+          // Check our output
+          expect(scope.items.length).toBe(5);
+          expect(scope.items[4]).toBe('Acai Berry');
           expect(element.find('input').val()).toBe('');
         }));
       });

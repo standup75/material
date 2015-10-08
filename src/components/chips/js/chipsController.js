@@ -93,6 +93,11 @@ function MdChipsCtrl ($scope, $mdConstant, $log, $element, $timeout) {
 MdChipsCtrl.prototype.inputKeydown = function(event) {
   var chipBuffer = this.getChipBuffer();
 
+  // If we have an autocomplete, and it handled the event, we have nothing to do
+  if (this.hasAutocomplete && event.isDefaultPrevented && event.isDefaultPrevented()) {
+    return;
+  }
+
   switch (event.keyCode) {
     case this.$mdConstant.KEY_CODE.ENTER:
       if ((this.hasAutocomplete && this.requireMatch) || !chipBuffer) break;
@@ -192,27 +197,32 @@ MdChipsCtrl.prototype.getAdjacentChipIndex = function(index) {
  * call out to the md-on-append method, if provided
  * @param newChip
  */
- MdChipsCtrl.prototype.appendChip = function(newChip) {
+MdChipsCtrl.prototype.appendChip = function(newChip) {
+  if (this.useOnAppend && this.onAppend) {
+    var onAppendChip = this.onAppend({'$chip': newChip});
 
-   // If useOnAppend and onAppend function is provided call it.
-   if (this.useOnAppend && this.onAppend) {
-     newChip = this.onAppend({'$chip': newChip});
-   }
+    // Check to make sure the chip is defined before assigning it (the developer may be using
+    // md-on-append as only a notification and not returning anything, in which case we should still
+    // add the string chip).
+    if (angular.isDefined(onAppendChip)) {
+      newChip = onAppendChip;
+    }
+  }
 
-   // If items contains identical object to newChip do not append
-   if(angular.isObject(newChip)){
-     var identical = this.items.some(function(item){
-       return angular.equals(newChip, item);
-     });
-     if(identical) return;
-   }
+  // If items contains identical object to newChip do not append
+  if(angular.isObject(newChip)){
+    var identical = this.items.some(function(item){
+      return angular.equals(newChip, item);
+    });
+    if(identical) return;
+  }
 
-   // If items contains newChip do not append
-   if (this.items.indexOf(newChip) + 1) return;
+  // Check for a null (but not undefined), or existing chip and cancel appending
+  if (newChip == null || this.items.indexOf(newChip) + 1) return;
 
-   //add newChip to items
-   this.items.push(newChip);
- };
+  // Append the new chip onto our list
+  this.items.push(newChip);
+};
 
 /**
  * Sets whether to use the md-on-append expression. This expression is
