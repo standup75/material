@@ -57,6 +57,7 @@ angular
  * @param {string=} md-input-name The name attribute given to the input element to be used with
  *     FormController
  * @param {string=} md-input-id An ID to be added to the input element
+ * @param {string=} md-input-type The type attribute to be added to the input element (defaults to "search")
  * @param {number=} md-input-minlength The minimum length for the input's value for validation
  * @param {number=} md-input-maxlength The maximum length for the input's value for validation
  * @param {boolean=} md-select-on-match When set, autocomplete will automatically select exact
@@ -142,7 +143,8 @@ function MdAutocomplete () {
       floatingLabel:  '@?mdFloatingLabel',
       autoselect:     '=?mdAutoselect',
       menuClass:      '@?mdMenuClass',
-      inputId:        '@?mdInputId'
+      inputId:        '@?mdInputId',
+      inputType:      '@?mdInputType'
     },
     link: function(scope, element, attrs, controller) {
       controller.hasNotFound = hasNotFoundTemplate;
@@ -220,7 +222,7 @@ function MdAutocomplete () {
           return '\
             <md-input-container flex ng-if="floatingLabel">\
               <label>{{floatingLabel}}</label>\
-              <input type="search"\
+              <input type="{{inputType || \'search\'}}"\
                   ' + (tabindex != null ? 'tabindex="' + tabindex + '"' : '') + '\
                   id="{{ inputId || \'fl-input-\' + $mdAutocompleteCtrl.id }}"\
                   name="{{inputName}}"\
@@ -243,7 +245,7 @@ function MdAutocomplete () {
             </md-input-container>';
         } else {
           return '\
-            <input flex type="search"\
+            <input flex type="{{inputType || \'search\'}}"\
                 ' + (tabindex != null ? 'tabindex="' + tabindex + '"' : '') + '\
                 id="{{ inputId || \'input-\' + $mdAutocompleteCtrl.id }}"\
                 name="{{inputName}}"\
